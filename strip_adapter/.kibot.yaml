@@ -1,0 +1,129 @@
+#
+# This is kibot configuration.
+#
+# Edit this file to generate more stuff automatically.
+#
+
+kibot:
+  version: 1
+
+preflight:
+  check_zone_fills: false
+  run_erc: false
+  run_drc: false
+  update_xml: true
+
+outputs:
+  - name: print_sch
+    type: pdf_sch_print
+    options:
+      output: 'docs/%f.pdf'
+
+  - name: pcb_image_2d_top
+    type: pcbdraw
+    options:
+      output: 'docs/%f_PCB_top.png'
+      format: png
+
+  - name: pcb_image_2d_bottom
+    type: pcbdraw
+    options:
+      output: 'docs/%f_PCB_bottom.png'
+      format: png
+      bottom: true
+
+  - name: pcb_image_3d_top
+    type: render_3d
+    options:
+      output: 'docs/%f_PCB_top_3D.png'
+      orthographic: true
+      solder_mask: '#104020'
+      ray_tracing: true
+      view: top
+      width: 1920
+      height: 1080
+
+  - name: pcb_image_3d_bottom
+    type: render_3d
+    options:
+      output: 'docs/%f_PCB_bottom_3D.png'
+      orthographic: true
+      solder_mask: '#104020'
+      ray_tracing: true
+      view: bottom
+      width: 1920
+      height: 1080
+
+  - name: JLCPCB_gerbers
+    type: gerber
+    dir: gerbers
+    options: &gerber_options
+      create_gerber_job_file: false
+      subtract_mask_from_silk: true
+      use_protel_extensions: true      
+    layers:
+      - F.Cu
+      - In1.Cu
+      - In2.Cu
+      - B.Cu
+      - F.SilkS
+      - B.SilkS
+      - F.Mask
+      - B.Mask
+      - Edge.Cuts
+
+  - name: JLCPCB_drill
+    type: excellon
+    dir: gerbers
+    options:
+      pth_and_npth_single_file: false
+      pth_id: '-PTH'
+      npth_id: '-NPTH'
+
+  - name: Compress gerbers
+    type: compress
+    options:
+      output: 'fab/%f_gerbers.zip'
+      files:
+        - source: 'gerbers/*'
+          from_cwd: true
+          dest: '.'
+      move_files: true
+
+  - name: 'interactive_bom'
+    type: ibom
+    dir: bom
+    options:
+      extra_fields: 'MPN'
+      dnp_field: 'kicad_dnp'
+
+  - name: 'bom_csv'
+    type: bom
+    dir: bom
+    options:
+      columns: ['Quantity Per PCB', 'References', 'Value', 'Footprint', 'Description', 'MPN', 'Datasheet']
+      group_fields: ['Value', 'Footprint', 'MPN']
+
+  - name: 'position'
+    type: position
+    dir: fab
+    options:
+      format: CSV
+
+  - name: Compress assembly files
+    type: compress
+    options:
+      output: 'fab/%f_assembly.zip'
+      files:
+        - source: 'bom/*'
+          from_cwd: true
+        - source: 'docs/*.png'
+          from_cwd: true
+          dest: 'renders'
+        - source: 'fab/*_pos.csv'
+          from_cwd: true
+          dest: 'positions'
+
+  - name: Step
+    type: step
+    dir: docs
